@@ -324,10 +324,10 @@ pause();
 % L_r=[ ]%LinkRadius
 % L_d=[ ]%LinkDepth
 % L_w=[ ]%LinkWidth
-% L_sh=[1 1 0 0 1 1] %Shape (0=cyl 1=cube)
+% L_sh=[1 1 0 0 1 1] %Shape (0=cyl 1=cube 1<zeroMass 0>error)
 
 % Symbolic parameter values:
-syms MROB L_H1 L_H2 L_H3 L_H4 L_H5 L_H6 L_R1 L_R2 L_R3 L_R4 L_R5 L_R6 L_D1 L_D2 L_D3 L_D4 L_D5 L_D6 L_W1 L_W2 L_W3 L_W4 L_W5 L_W6 integer positive
+syms MROB L_H1 L_H2 L_H3 L_H4 L_H5 L_H6 L_R1 L_R2 L_R3 L_R4 L_R5 L_R6 L_D1 L_D2 L_D3 L_D4 L_D5 L_D6 L_W1 L_W2 L_W3 L_W4 L_W5 L_W6 %integer positive
 Mtot=  MROB%Total mass of Robot
 L_h=[L_H1 L_H2 L_H3 L_H4 L_H5 L_H6 ]%LinkHeight
 L_r=[L_R1 L_R2 L_R3 L_R4 L_R5 L_R6 ]%LinkRadius
@@ -350,54 +350,126 @@ for i=1:numoflinks
     Vcube(i)=h * d * w
 end
 
-
-%Mass of links based on cylinder model
+%Total volume based on shape vector:
+Vtot=0
 for i=1:numoflinks
-    Mcyl(i)=Mtot*Vcyl(i)/sum(Vcyl)
+    if L_sh(i)==0
+        Vtot=Vtot+ Vcyl(i)
+    elseif L_sh(i)==1
+        Vtot=Vtot+ Vcube(i)
+    else
+        Vtot=Vtot
+    end
 end
 
-%Mass of links based on cuboid model
+%Create link mass based on shape vector
 for i=1:numoflinks
-    Mcube(i)=Mtot*Vcube(i)/sum(Vcube)
+    if L_sh(i)==0
+        Mlink(i)=Mtot*Vcyl(i)/Vtot
+    elseif L_sh(i)==1
+        Mlink(i)=Mtot*Vcube(i)/Vtot
+    else
+        Mlink(i)=0
+    end
 end
 
+% %Mass of links based on cylinder model
+% for i=1:numoflinks
+%     Mcyl(i)=Mtot*Vcyl(i)/sum(Vcyl)
+% end
+% 
+% %Mass of links based on cuboid model
+% for i=1:numoflinks
+%     Mcube(i)=Mtot*Vcube(i)/sum(Vcube)
+% end
 
-%calculate Inertia marix based on cylinder model
+%create innertia tensors based on shape vector
+    %Innertia Tensor
 for i=1:numoflinks
-    m=Mcyl(i)   %mass 
-    h=L_h(i)    %height
-    r=L_r(i)    %depth
-    Icyl(i,:,:)=[
+    if L_sh(i)==0
+        m=Mlink(i)   %mass 
+        h=L_h(i)    %height
+        r=L_r(i)    %depth
+        
+        Icyl=[
         1/12*m*(3*r^2+h^2)   0                   0  
         0                   1/12*m*(3*r^2+h^2)   0
         0                   0                   1/2*m*r^2
         ]
-end
-
-%Calculate Inertia matrix based on cuboid model
-for i=1:numoflinks
-    m=Mcube(i)  %mass 
-    h=L_h(i)    %height
-    d=L_d(i)    %depth
-    w=L_w(i)    %width
-    Icube(i,:,:)=[
+    
+        InTens(:,:,i)= Icyl;    
+    elseif L_sh(i)==1
+        
+        m=Mlink(i)  %mass 
+        h=L_h(i)    %height
+        d=L_d(i)    %depth
+        w=L_w(i)    %width
+    
+        Icube=[
         1/12*m*(h^2+d^2)    0                   0
         0                   1/12*m*(w^2+d^2)    0
         0                   0                   1/12*m*(w^2+h^2)
         ]
+    
+        InTens(:,:,i)= Icube;
+        
+    else
+        InTens(:,:,i)=zeros(3)
+    end
 end
 
-%Assign parameters to Links based on Link shape
+
+% %calculate Inertia marix based on cylinder model
+% for i=1:numoflinks
+%     m=Mcyl(i)   %mass 
+%     h=L_h(i)    %height
+%     r=L_r(i)    %depth
+%     Icyl(i,:,:)=[
+%         1/12*m*(3*r^2+h^2)   0                   0  
+%         0                   1/12*m*(3*r^2+h^2)   0
+%         0                   0                   1/2*m*r^2
+%         ]
+% end
+% 
+% %Calculate Inertia matrix based on cuboid model
+% for i=1:numoflinks
+%     m=Mcube(i)  %mass 
+%     h=L_h(i)    %height
+%     d=L_d(i)    %depth
+%     w=L_w(i)    %width
+%     Icube(i,:,:)=[
+%         1/12*m*(h^2+d^2)    0                   0
+%         0                   1/12*m*(w^2+d^2)    0
+%         0                   0                   1/12*m*(w^2+h^2)
+%         ]
+% end
+
+%Estimation of Center of gravity
+R_simple=[L_h'/2 L_d'/2 L_w'/2];
+%Correct for DH-Frame/ physical link deviation
+R_corrected=R_simple+[ %Corrective Matrix for link base displacement
+    0   0   0
+    0   0   0
+    0   0   0
+    0   0   0
+    0   0   0
+    0   0   0
+]
+
+%Steal fricion model form other Robot.
+%Here: puma560
+mdl_puma560
+for i=1:numoflinks %has to be grabbed 1 by 1
+Lfr_stolen(i,:)=p560.links(:,i).Tc
+end %fr_stolen because very vague friction
+    
+
+%Assign parameters to Links
 for i=1:numoflinks
-    %Innertia Tensor
-    if L_sh(i)==0
-        InTens= Icyl(i,:,:);    
-    elseif L_sh(i)==1
-        InTens= Icube(i,:,:);
-    end
-    R.links(i).I=[InTens]
-    R.links(i).R=[]
-    R.links(i).Tc=[]
+    R.links(i).m=Mlink(i);
+    R.links(i).I=InTens(:,:,i);
+    R.links(i).r=R_corrected(i,:);
+    R.links(i).Tc=Lfr_stolen(i,:)
 end
 
 %Display dynamics:
@@ -407,10 +479,10 @@ R.dyn
 %massless, so combined weight of endeffector and payload is defined here
 %at their commmon center of mass
 toolmass=25 % Value given by Laurence
-R.payload(toolmass, [0 0 0.5*toollength]); %A point mass of 25 kg is assumed at half the lenght of tool
+R.payload(toolmass, [0 0 0.5*toolLength]); %A point mass of 25 kg is assumed at half the lenght of tool
 
-%Forces on links:
-%symbolic:
-syms q1 q2 q3 q4 q5 q6 q1d q2d q3d q4d q5d q6d  q1dd q2dd q3dd q4dd q5dd q6dd real
-tau = R.rne([q1 q2 q3 q4 q5 q6], [q1d q2d q3d q4d q5d q6d], [q1dd q2dd q3dd q4dd q5dd q6dd])
+% %Forces on links:
+% %symbolic:
+% syms q1 q2 q3 q4 q5 q6 q1d q2d q3d q4d q5d q6d  q1dd q2dd q3dd q4dd q5dd q6dd real
+% tau = R.rne([q1 q2 q3 q4 q5 q6], [q1d q2d q3d q4d q5d q6d], [q1dd q2dd q3dd q4dd q5dd q6dd])
 
