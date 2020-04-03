@@ -551,14 +551,18 @@ R.plot(q)
 % Section of a of a hyperellipsoid in Cartesian acceleration space. 
 % The major axis of this ellipsoid is the direction in which 
 % the manipulator has maximum acceleration at this con?guration.
-J = R.jacob0(qn);
-M = R.inertia(qn);
+pose = qs;
+J = R.jacob0(pose);
+M = R.inertia(pose);
 Mx = (J * inv(M) * inv(M)' * J');
 Mx = Mx(1:3, 1:3);
 figure()
 plot_ellipse( Mx )
 
 %% clean up the graphs
+%Break 
+fprintf('press any key to continue and close all figures? strg-c aborts and leaves all figures opened...\n')
+pause();
 close figure 2
 close figure 3
 close figure 4
