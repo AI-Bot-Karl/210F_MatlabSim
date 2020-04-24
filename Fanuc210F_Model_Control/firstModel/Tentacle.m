@@ -1,4 +1,4 @@
-clear all
+fclear all
 close all
 mdl_ball
 t = [0:0.05:0.5]';

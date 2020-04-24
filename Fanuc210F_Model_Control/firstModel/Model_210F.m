@@ -3,7 +3,7 @@ close all
 clear all
 clc
 
-import +ETS3.* %Don't know if necessary
+import +ETS3.* 
 
 %% Robot building
 fprintf('Build the robot')
@@ -20,10 +20,10 @@ POS_name=["ZERO";"READY";"STRETCH";"NOMINAL"];
 %define DH parameters with the links [METRIC]
 %Link      Thet d    a    Alp   r/p offs
 L(1)=Link([0    0     0.312 pi/2  0   0   ],'standard');
-L(2)=Link([0    0     1.075 0     0   pi/2],'standard'); %Maybe [0    0    1075 0     0   -pi/2]; NOW:depending on direction determied with graphical representation
+L(2)=Link([0    0     1.075 0     0   pi/2],'standard'); 
 L(3)=Link([0    0     0.225 pi/2  0   0   ],'standard');
 L(4)=Link([0    1.280 0     -pi/2  0   0   ],'standard');
-L(5)=Link([0    0     0    pi/2  0   0   ],'standard'); %Maybe [0    0    0    pi/2 0   0   ]; NOW: depending on direction determied with graphical representation
+L(5)=Link([0    0     0    pi/2  0   0   ],'standard'); 
 L(6)=Link([0    0.235 0     0     0   0   ],'standard');
 
 %Set joint limits
@@ -55,7 +55,7 @@ R.base = SE3(0, 0, 0.670);
 
 %Add a tool [METRIC]
 toolLength=0.658; %See CAD drawing from Laurence for measurements
-R.tool =SE3(0, 0, 0); %SE3.rand  toolLength
+R.tool =SE3(0, 0, toolLength); %(0 0  {SE3.rand OR toolLength OR 0})
 
 
 
@@ -75,6 +75,7 @@ R.isconfig('RRRRRR') %returns 1, if joint config string is right
 fprintf('Are all joints of revolute type ? (1=Y, 0=N)')
 R.isrevolute %returns 1, for all joints that are revolute joints
 
+R.fast=1; %set to 1 for fast RNE
 
 %%Showall
 fprintf('Overview of the robot parameters:\n')
@@ -85,18 +86,6 @@ fprintf('press any key to continue...\n')
 pause();
 %% Forward kinematics
 fprintf('forward Kinematics')
-% T(1)=R.fkine(qz)
-% R.plot(qz)
-% pause();
-% T(2)=R.fkine(qr)
-% R.plot(qr)
-% pause();
-% T(3)=R.fkine(qs)
-% R.plot(qs)
-% pause();
-% T(4)=R.fkine(qn)
-% R.plot(qn)
-% pause();
 
 for i=1:size(POS,1)
     fprintf('Robot in position %s :\n', POS_name(i,:));
@@ -198,7 +187,7 @@ fprintf('testing unreachable position:\n')
 % Testing unreachable Position
 [Q,ERR,EXITFLAG,OUTPUT]=R.ikcon(SE3(30000,0,0))
 %doesn't throw proper error message, but at least gives error output
-fprintf('does not throw proper error message, but at least gives error output')
+fprintf('does not throw proper error message, but at least gives error output\n')
 %List of inverse kinematic functions
 % ikine6s 	inverse kinematics for 6-axis spherical wrist revolute robot
 % ikine 	inverse kinematics using iterative numerical method
@@ -206,7 +195,7 @@ fprintf('does not throw proper error message, but at least gives error output')
 % ikcon 	inverse kinematics using optimisation with joint limits
 % ikine_sym 	analytic inverse kinematics obtained symbolically
 
-%What the hell is wrong with ikine6s??? all other solutions work...
+%What *** is wrong with ikine6s? all other solutions work
 % R.plot(qn)
 % R.plot(R.ikcon(R.fkine(qn)))
 % R.plot(R.ikunc(R.fkine(qn)))
@@ -272,7 +261,7 @@ plot3(p(:,1), p(:,2), p(:,3))
 %  orientation of the end-effector, in XYZ roll-pitch-yaw angle form
 plot(t, T.torpy('xyz'))
 
-pause();
+%pause();
 % Cartesian motion
 %where straight line motion in caresian space is reqired. only accepts number of time steps
 Ts = ctraj(T1, T2, length(t)); 
@@ -319,28 +308,13 @@ pause();
 %See here for more:
 %https://de.mathworks.com/matlabcentral/fileexchange/26982-volume-of-a-surface-triangulation
 
-% % Given parameter values:
-% Mtot=  1170%Total mass of Robot
-% L_h=[ ]%LinkHeight
-% L_r=[ ]%LinkRadius
-% L_d=[ ]%LinkDepth
-% L_w=[ ]%LinkWidth
-% L_sh=[1 1 0 0 1 1] %Shape (0=cyl 1=cube 1<zeroMass 0>error)
 
-% % Symbolic parameter values:
-% syms MROB L_H1 L_H2 L_H3 L_H4 L_H5 L_H6 L_R1 L_R2 L_R3 L_R4 L_R5 L_R6 L_D1 L_D2 L_D3 L_D4 L_D5 L_D6 L_W1 L_W2 L_W3 L_W4 L_W5 L_W6 %integer positive
-% Mtot=  MROB%Total mass of Robot
-% L_h=[L_H1 L_H2 L_H3 L_H4 L_H5 L_H6 ]%LinkHeight
-% L_r=[L_R1 L_R2 L_R3 L_R4 L_R5 L_R6 ]%LinkRadius
-% L_d=[L_D1 L_D2 L_D3 L_D4 L_D5 L_D6 ]%LinkDepth
-% L_w=[L_W1 L_W2 L_W3 L_W4 L_W5 L_W6 ]%LinkWidth
-% L_sh=[1 1 0 0 1 1]
 
 % Assumed parameter values:
 %syms MROB L_H1 L_H2 L_H3 L_H4 L_H5 L_H6 L_R1 L_R2 L_R3 L_R4 L_R5 L_R6 L_D1 L_D2 L_D3 L_D4 L_D5 L_D6 L_W1 L_W2 L_W3 L_W4 L_W5 L_W6 %integer positive
 Mtot=   1170 %[Kg] [METRIC] %Total mass of Robot according to datasheet
 L_h= [0.280    0.600       0.310     1.280      0.240     0.50     ]%LinkHeight (z)
-L_r= [0.600/2  0.600/2     0.310/2   0.180/2    0.235/2   150/2    ]%LinkRadius
+L_r= [0.600/2  0.600/2     0.310/2   0.180/2    0.235/2   0.150/2  ]%LinkRadius
 L_d= [0.600    0.670-0.280 0.310     0.180      0.240     0.150    ]%LinkDepth (y)
 L_w= [0.600    0.600       1.075     0.180      0.230     0.150    ]%LinkWidth (x)
 L_sh=[1        1           1         0          1         0        ]%Shape (0=cyl 1=cube 1<zeroMass 0>error)
@@ -455,7 +429,8 @@ end
 % end
 
 %Estimation of Center of gravity
-R_simple=[L_w'/2 L_d'/2 L_h'/2];
+%R_simple=[L_w'/2 L_d'/2 L_h'/2]; %WRONG! only offset along axis
+R_simple=[zeros(size(L_w'/2)) zeros(size(L_d'/2)) L_h'/2];
 %Correct for DH-Frame/ physical link deviation
 R_corrected=[ %Corrective Matrix for link base displacement
     0   0   0
@@ -464,16 +439,16 @@ R_corrected=[ %Corrective Matrix for link base displacement
     0   0   0
     0   0   0
     0   0   0
-] %+ R_simple
+] + R_simple;
 
 %Steal fricion model form other Robot.
 %Here: puma560
 mdl_puma560
 for i=1:numoflinks %has to be grabbed 1 by 1
-Lfr_stolen(i,:)=p560.links(:,i).Tc %Linkfriction %fr_stolen because very vague friction
-MB_stolen(i,:)=p560.links(:,i).B    %Motor viscous friction
-gears_stolen(i,:)=p560.links(:,i).G %Gear ratio
-MI_stolen(i,:) =p560.links(:,i).Jm  %Motor innertia
+Lfr_stolen(i,:)=p560.links(:,i).Tc; %Linkfriction %fr_stolen because very vague friction
+MB_stolen(i,:)=p560.links(:,i).B;    %Motor viscous friction
+gears_stolen(i,:)=p560.links(:,i).G; %Gear ratio
+MI_stolen(i,:) =p560.links(:,i).Jm;  %Motor innertia
 end 
     
 
@@ -482,10 +457,10 @@ for i=1:numoflinks
     R.links(i).m=Mlink(i);
     R.links(i).I=InTens(:,:,i);
     R.links(i).r=R_corrected(i,:);
-    R.links(i).Tc=Lfr_stolen(i,:)
-    R.links(i).B = MB_stolen(i,:) 
-    R.links(i).G = gears_stolen(i,:)
-    R.links(i).Jm = MI_stolen(i,:)     
+    R.links(i).Tc=Lfr_stolen(i,:);
+    R.links(i).B = MB_stolen(i,:); 
+    R.links(i).G = gears_stolen(i,:);
+    R.links(i).Jm = MI_stolen(i,:);     
 end
 
 %Display dynamics:
@@ -495,12 +470,8 @@ R.dyn
 %massless, so combined weight of endeffector and payload is defined here
 %at their commmon center of mass
 toolmass=25 % Value given by Laurence
-R.payload(toolmass, [0 0 0.5*toolLength ]); %-0.5*toolLength point mass of 25 kg is assumed at half the lenght of tool 0.5*toolLength
+R.payload(toolmass, [0 0 0.5*toolLength ]); %point mass of 25 kg is assumed at half the lenght of tool 0.5*toolLength
 
-% %Forces on links:
-% %symbolic:
-% syms q1 q2 q3 q4 q5 q6 q1d q2d q3d q4d q5d q6d  q1dd q2dd q3dd q4dd q5dd q6dd real
-% tau = R.rne([q1 q2 q3 q4 q5 q6], [q1d q2d q3d q4d q5d q6d], [q1dd q2dd q3dd q4dd q5dd q6dd])
 
 %Forces for holding the robot in normal position:
 Q = R.rne(POS(4,:), POS(1,:), POS(1,:)) %Nonzero due to gravity
@@ -535,29 +506,25 @@ surfl(Q2, Q3, g3);
 %
 figure(1)
 %[t q qd] = R.nofriction().fdyn(10, [], POS(4,:));
-[t q qd] = R.nofriction().fdyn(200, [], POS(1,:));
+[t q qd] = R.nofriction().fdyn(2, [], POS(1,:));
 figure(1)
 R.plot(q)
 
-% behaves the same as
-%  p560.tool=SE3(0, 0, 0.3);
-% p560.plot(qz)
-% p560.payload(toolmass, [0.01 0.01 0]);
-% [t q qd] = p560.nofriction().fdyn(10, [], qz);
-% p560.plot(q)
 
-%% Jacobian stuff
+
+%% Jacobian
 
 % Section of a of a hyperellipsoid in Cartesian acceleration space. 
 % The major axis of this ellipsoid is the direction in which 
 % the manipulator has maximum acceleration at this con?guration.
-pose = qs;
-J = R.jacob0(pose);
-M = R.inertia(pose);
-Mx = (J * inv(M) * inv(M)' * J');
-Mx = Mx(1:3, 1:3);
-figure()
-plot_ellipse( Mx )
+
+% pose = qs;
+% J = R.jacob0(pose);
+% M = R.inertia(pose);
+% Mx = (J * inv(M) * inv(M)' * J');
+% Mx = Mx(1:3, 1:3);
+% figure()
+% plot_ellipse( Mx )
 
 %% clean up the graphs
 %Break 
@@ -570,4 +537,5 @@ close figure 5
 close figure 6
 close figure 7
 close figure 8
-close figure 9
+%close figure 9
+%close figure 10
